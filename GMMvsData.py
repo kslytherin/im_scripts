@@ -12,6 +12,7 @@ from gmprocess.utils.constants import UNITS, STATION_METRIC_UNITS
 from openquake.hazardlib.imt import PGA, CAV, IA, PGV
 import statsmodels.formula.api as smf
 
+from convert_GMM_units import *
 from get_eq_stn_info import get_eq_stn_dist_vals, get_event_from_rup
 import time
 import copy
@@ -26,26 +27,30 @@ start = time.time()
 makefiles = True
 myfig_ops = {"makefigs": True, "showfigs": True, "printfigs": True}
 myimt = CAV()
-eid = "921"  # for Macedo replication
 dta_ver = "v2"
 
-gmm_model = "CampbellBozorgnia2019"
+# gmm_model = "CampbellBozorgnia2019"
 # gmm_model = "SandikkayaAkkar2017Rjb"
 # gmm_model = ("MacedoEtAl2021","BooreEtAl2014")
+# gmm_model = ("LiuMacedo2022SInter", "ParkerEtAl2020SInter")
+# gmm_model = ("LiuMacedo2022SInter", "ParkerEtAl2020SInter")
+# gmm_model = "LiuMacedo2022M1SInter"
+# gmm_model = "LiuMacedo2022M2SInter"
+# gmm_model = "LiuMacedo2022M1SSlab"
+# gmm_model = "LiuMacedo2022M2SSlab"
 # gmm_model = ("MacedoEtAl2021","AbrahamsonEtAl2014")
 # gmm_model = ("MacedoEtAl2021","ChiouYoungs2014")
 # gmm_model = ("MacedoEtAl2021","CampbellBozorgnia2014")
 
 #####################################
 
-path_to_rupture_files = "/Users/kksmith/im_scripts/data/rup/"
-out_path_0 = "~/im_scripts/data/GMMout/"
+path_to_rupture_files = "/Users/kksmith/data/rup/"
+out_path_0 = "~/data/GMMout/"
 
 if dta_ver == "v2":
     test_path = "~/Documents/GMM_data/for_kyle_conus/"
-    # out_path = "~/im_scripts/output_conus/"
-    out_path = "~/im_scripts/output_conus_test/"
-
+    # out_path = "~/output_conus/"
+    out_path = "~/output_conus_test/"
     USname = "CONUS"
     fname1 = "CONUS_HW_AK_h1_records.csv"
     fname2 = "dsgmd_h2.csv"
@@ -54,7 +59,7 @@ if dta_ver == "v2":
     dta_ver = "v2"
 elif dta_ver == "v1":
     test_path = "~/Documents/GMM_data/for_kyle/"
-    out_path = "~/im_scripts/output/"
+    out_path = "~/output/"
     USname = "West_US"
     fname1 = "wus_default_metrics_channels(component=h1)_filtered_vs30.csv"
     fname2 = "wus_default_metrics_channels(component=h2)_filtered.csv"
@@ -71,6 +76,8 @@ dist_meas = pre_dist_meas.lower()
 # dist_meas_label = pre_dist_meas
 dist_meas_label = "Distance to Earthquake"
 
+# ind_geo_sec = ["WUS", "EUS", "Alaska", "Hawaii"]
+ind_geo_sec = ["WUS", "Alaska"]
 # if False, it uses our custom boundaries for plotting, else it does it "on the fly":w
 
 # main_gmm_set = [("MacedoEtAl2021","CampbellBozorgnia2014"), "CampbellBozorgnia2019", "SandikkayaAkkar2017Rjb"]
@@ -82,78 +89,53 @@ dist_meas_label = "Distance to Earthquake"
 
 if isinstance(gmm_model, tuple):
     gmm_model_str = gmm_model[0] + "-" + gmm_model[1]
-    if gmm_model[1] == "BooreEtAl2014":
-        nice_gmm_model_str = "Macedo et al. (2021) [Boore et al. (2014)]"
-    elif gmm_model[1] == "CampbellBozorgnia2014":
-        nice_gmm_model_str = "Macedo et al. (2021) [Campbell and Bozorgnia (2014)]"
-    else:
-        nice_gmm_model_str = "Macedo et al. (2021) [{}]".format(gmm_model[1])
+    if gmm_model[0] == "MacedoEtAl2021":
+        if gmm_model[1] == "BooreEtAl2014":
+            nice_gmm_model_str = "Macedo et al. (2021) [Boore et al. (2014)]"
+        elif gmm_model[1] == "AbrahamsonEtAl2014":
+            nice_gmm_model_str = "Macedo et al. (2021) [Abrahamson et al. (2014)]"
+        elif gmm_model[1] == "ChiouYoungs2014":
+            nice_gmm_model_str = "Macedo et al. (2021) [Chiou and Youngs (2014)]"
+        elif gmm_model[1] == "CampbellBozorgnia2014":
+            nice_gmm_model_str = "Macedo et al. (2021) [Campbell and Bozorgnia (2014)]"
+        else:
+            nice_gmm_model_str = "Macedo et al. (2021) [{}]".format(gmm_model[1])
+    if gmm_model[0] == "LiuMacedo2022SInter":
+        if gmm_model[1] == "ParkerEtAl2020SInter":
+            nice_gmm_model_str = "Liu and Macedo (2021) [Parker et al. (2020)]"
+    if gmm_model[0] == "LiuMacedo2022SSlab":
+        if gmm_model[1] == "ParkerEtAl2020SSlab":
+            nice_gmm_model_str = "Liu and Macedo (2021) [Parker et al. (2020)]"
 else:
     gmm_model_str = gmm_model
     if gmm_model == "SandikkayaAkkar2017Rjb":
         nice_gmm_model_str = "Sandikkaya and Akkar (2017)"
     elif gmm_model == "CampbellBozorgnia2019":
         nice_gmm_model_str = "Campbell and Bozorgnia (2019)"
+    elif gmm_model == "LiuMacedo2022M1SSlab":
+        nice_gmm_model_str = "Liu and Macedo (2021) (M1, Slab)"
+    elif gmm_model == "LiuMacedo2022M1SInter":
+        nice_gmm_model_str = "Liu and Macedo (2021) (M1, Inter)"
+    elif gmm_model == "LiuMacedo2022M2SSlab":
+        nice_gmm_model_str = "Liu and Macedo (2021) (M2, Slab)"
+    elif gmm_model == "LiuMacedo2022M2SInter":
+        nice_gmm_model_str = "Liu and Macedo (2021) (M2, Inter)"
 
+print("nice_gmm_model_str is " + nice_gmm_model_str)
 # Get Data
 # How is the geometric mean computed
 fullfname1 = test_path + fname1
 fullfname2 = test_path + fname2
 
 # Get tectonic region information
-tect_region = "CONUS_HW_AK_unique_eqs_tect_region.csv"
+tect_region = "CONUS_HW_AK_unique_eqs_tect_region_final.csv"
+# tect_region = "CONUS_HW_AK_unique_eqs_tect_region.csv"
 fulltec = test_path + tect_region
 EQ_w_tec_info = pd.read_csv(fulltec)
-tec_prob_list = [
-    "ProbabilityActive",
-    "ProbabilityStable",
-    "ProbabilitySubduction",
-    "ProbabilityVolcanic",
-]
-
-# Get maximum probability and associated name
-EQ_w_tec_info["MaxProbability"] = EQ_w_tec_info[tec_prob_list].max(axis=1)
-EQ_w_tec_info["MaxProbabilityName"] = EQ_w_tec_info[tec_prob_list].idxmax(axis=1)
-# Check if MaxProbabilityName is "ProbabilitySubduction"
-subduction_mask = EQ_w_tec_info["MaxProbabilityName"] == "ProbabilitySubduction"
-
-# Find the max of the subduction probabilities
-subduction_probs = EQ_w_tec_info.loc[
-    subduction_mask,
-    [
-        "ProbabilitySubductionCrustal",
-        "ProbabilitySubductionInterface",
-        "ProbabilitySubductionIntraslab",
-    ],
-]
-
-EQ_w_tec_info.loc[subduction_mask, "MaxSubductionProbability"] = subduction_probs.max(
-    axis=1
-)
-EQ_w_tec_info.loc[subduction_mask, "MaxSubductionProbabilityName"] = (
-    subduction_probs.idxmax(axis=1)
-)
-
-EQ_w_tec_info["FinalProbabilityName"] = EQ_w_tec_info[
-    "MaxSubductionProbabilityName"
-].fillna(EQ_w_tec_info["MaxProbabilityName"])
-
-EQ_w_tec_info["FinalProbability"] = EQ_w_tec_info["MaxSubductionProbability"].fillna(
-    EQ_w_tec_info["MaxProbability"]
-)
-# Remove "Probability" string and rename "SubductionIntraslab" to "Active"
-EQ_w_tec_info["Tect_region"] = EQ_w_tec_info["FinalProbabilityName"].str.replace(
-    "Probability", ""
-)
-
-EQ_w_tec_info["Tect_region"] = EQ_w_tec_info["Tect_region"].replace(
-    "SubductionCrustal", "Active"
-)
-
 # only works for the dataset: ~/Documents/GMM_data/for_kyle/wus_default_metrics_channels(component=h*)_filtered.csv
 
-# fig_dir = "/Users/kksmith/figures/"
-fig_dir = "/Users/kksmith/test_figures/"
+# fig_dir = "/Users/kksmith/test_figures/"
+fig_dir = "/Users/kksmith/figures/GMMvsData/"
 ftype = ".png"
 tick_fontsize = 10
 ax_fontsize = 12
@@ -162,7 +144,7 @@ title_fontsize = 14
 
 mydata1a = pd.read_csv(fullfname1)
 mydata2a = pd.read_csv(fullfname2)
-
+breakpoint()
 # Add tectonic region information to mydata1a
 mydata1a = mydata1a.merge(
     EQ_w_tec_info[["EarthquakeId", "Tect_region"]], on="EarthquakeId", how="left"
@@ -172,7 +154,7 @@ mydata2a = mydata2a.merge(
     EQ_w_tec_info[["EarthquakeId", "Tect_region"]], on="EarthquakeId", how="left"
 )
 
-mydata1a.sort_values(by=["EarthquakeLatitude"], ascending=True, inplace=True)
+mydata1a.sort_values(by=["EventLatitude"], ascending=True, inplace=True)
 mydata2a = mydata2a.iloc[mydata1a.index]
 
 bad_stn = "4O.PL01.00.HH"
@@ -198,6 +180,7 @@ geo_reg_cols["Alaska"] = "g"
 geo_reg_cols["Hawaii"] = "m"
 geo_reg_cols["WUS"] = "r"
 geo_reg_cols["EUS"] = "b"
+geo_reg_cols["Global"] = "c"
 
 if dta_ver == "v1":
     depth_plot_lims = [0, 160]
@@ -219,7 +202,7 @@ num_recs_set = {}
 
 mydata1a["EarthquakeRake"] = 0
 mydata1a["EarthquakeDip"] = 90
-mydata1a["EarthquakeZtor"] = mydata1a["EarthquakeDepth"].values
+mydata1a["EarthquakeZtor"] = mydata1a["EventDepth"].values
 mydata1a["Fault_Type"] = "SS"
 mydata1a["alpha"] = 90
 mydata1a["EarthquakeWidth"] = kaklamanos_relations.calc_width(
@@ -230,6 +213,8 @@ nonSS_tol = 45
 
 # stn_locs = {'lat':mydata1a['StationLatitude'], 'lon': mydata1a['StationLongitude']}
 
+o_start = time.time()
+rup_mag_thresh = 7
 # fill in information from rupture file
 for eqid in np.unique(mydata1a["EarthquakeId"]):
 
@@ -242,12 +227,12 @@ for eqid in np.unique(mydata1a["EarthquakeId"]):
     rup_fname = eqid + "_rupture.json"
     full_rup_fname = path_to_rupture_files + rup_fname
     # if (not os.path.isfile(full_rup_fname)) or (
-    #     mydata1a.loc[mycond_i[0], "EarthquakeMagnitude"] < 7
+    #     mydata1a.loc[mycond_i[0], "EarthquakeMagnitude"] < rup_mag_thresh
     # ):
     # breakpoint()
-    # If file doesn't exist or mag <= 7
+    # If file doesn't exist or mag <= rup_mag_thresh
     if (not os.path.isfile(full_rup_fname)) or (
-        mydata1a["EarthquakeMagnitude"][mycond_i[0]] <= 7
+        mydata1a["EarthquakeMagnitude"][mycond_i[0]] <= rup_mag_thresh
     ):
         # assume it is a point source or should I calculate width?
         # print(rup_fname + " does not exist")
@@ -288,34 +273,52 @@ ry_know = mydata1a["GC2_ry"].values
 alpha_assume = kaklamanos_relations.calc_alpha(rx_know, ry_know)
 fix_alpha_nan = mytools.find_nparray_nan(alpha_assume)
 
+pre_end = time.time()
+print("The time of execution of above program is :", pre_end - o_start, "s")
+mydata1a.to_csv(
+    test_path
+    + "CONUS_HW_AK_h1_records_stn_filtered_wEQparams_M{}_thresh_h1.csv".format(
+        rup_mag_thresh
+    )
+)
+
+mydata2a.to_csv(test_path + "CONUS_HW_AK_h1_records_stn_filtered_h2.csv")
+
 # breakpoint()
 alpha_assume_other = 90
 alpha_assume[fix_alpha_nan] = alpha_assume_other
-# breakpoint()
 
 # mydata1a["alpha"] = alpha_assume
 
 # for geo_reg in ["Globe"]:
 # for geo_reg in ["Globe", "Hawaii"]:
-for tect_reg in EQ_w_tec_info["Tect_region"].unique():
+All_tect_sets = ["all_tect"] + list(EQ_w_tec_info["Tect_region"].unique())
+All_tect_sets = [tect for tect in All_tect_sets if tect not in ["Volcanic", "Stable"]]
+# for tect_reg in EQ_w_tec_info["Tect_region"].unique():
+for tect_reg in All_tect_sets:
     print(tect_reg + " \n")
-    mydata1b = mydata1a[mydata1a["Tect_region"] == tect_reg]
-    mydata2b = mydata2a[mydata2a["Tect_region"] == tect_reg]
+    if tect_reg == "all_tect":
+        mydata1b = copy.deepcopy(mydata1a)
+        mydata2b = copy.deepcopy(mydata2a)
+    else:
+        mydata1b = mydata1a[mydata1a["Tect_region"] == tect_reg]
+        mydata2b = mydata2a[mydata2a["Tect_region"] == tect_reg]
 
     regional_cond = {}
-    regional_cond["Globe"] = mydata1b["EarthquakeLatitude"] > -91
-    regional_cond["Alaska"] = mydata1b["EarthquakeLatitude"] > 50
-    regional_cond["Hawaii"] = mydata1b["EarthquakeLatitude"] < 25
+    regional_cond["Globe"] = mydata1b["EventLatitude"] > -91
+    regional_cond["Alaska"] = mydata1b["EventLatitude"] > 50
+    regional_cond["Hawaii"] = mydata1b["EventLatitude"] < 25
+    regional_cond["EUS"] = mydata1b["EventLongitude"] >= -104
     regional_cond["WUS"] = np.logical_and(
-        mydata1b["EarthquakeLongitude"] < -104, mydata1b["EarthquakeLongitude"] > -125
+        mydata1b["EventLongitude"] > -125, mydata1b["EventLongitude"] < -104
     )
-    regional_cond["EUS"] = mydata1b["EarthquakeLongitude"] >= -104
-    # regional_cond['West_US'] = np.logical_and(25 < mydata1b["EarthquakeLatitude"], mydata1b["EarthquakeLatitude"] < 50)
+    # regional_cond['West_US'] = np.logical_and(25 < mydata1b["EventLatitude"], mydata1b["EventLatitude"] < 50)
     regional_cond[USname] = np.logical_and(
-        25 < mydata1b["EarthquakeLatitude"], mydata1b["EarthquakeLatitude"] < 50
+        25 < mydata1b["EventLatitude"], mydata1b["EventLatitude"] < 50
     )
 
-    for geo_reg in ["Globe", "Alaska", "Hawaii", USname, "WUS", "EUS"]:
+    # for geo_reg in ["Globe", "Alaska", "Hawaii", USname, "WUS", "EUS"]:
+    for geo_reg in ["Alaska", "WUS"]:
         print(geo_reg + " \n")
         # data subset by region
         if np.sum(regional_cond[geo_reg]) == 0:
@@ -340,11 +343,11 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         mag_know = mydata1c[magstr].values
         rrup_know = mydata1c["RuptureDistance"].values
         rjb_know = mydata1c["JoynerBooreDistance"].values
-        eq_lat = (mydata1c["EarthquakeLatitude"],)
-        eq_lon = mydata1c["EarthquakeLongitude"]
+        eq_lat = (mydata1c["EventLatitude"],)
+        eq_lon = mydata1c["EventLongitude"]
         vs30_know = mydata1c[vs30str].values
 
-        hypo_depth_assume = mydata1c["EarthquakeDepth"].values
+        hypo_depth_assume = mydata1c["EventDepth"].values
 
         # new_rx = kaklamanos_relations.calc_rx2(
         #     rrup_know, rjb_know, mydata1c['EarthquakeDip'], mydata1c['EarthquakeWidth'], mydata1c['EarthquakeZtor'], alpha_assume
@@ -426,6 +429,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
                 phi_data_cmp,
                 ctx_data_cmp,
             ) = get_gmm_im.get_gmm_im(mydata_comp1, gmm_model, myimt)
+        lnmean_data_cmp = convert_GMM_units(gmm_model, lnmean_data_cmp)
         print("tau min = {:0.2f}".format(np.min(tau_data_cmp)))
         print("tau max = {:0.2f}".format(np.max(tau_data_cmp)))
         print("phi min = {:0.2f}".format(np.min(phi_data_cmp)))
@@ -448,7 +452,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
             # fig, axes = plt.subplots()
             temp_ax = axes[gm_i, 1]
             if geo_reg == "Globe":
-                for or_i, geo_reg_alt in enumerate([USname, "Alaska", "Hawaii"]):
+                for or_i, geo_reg_alt in enumerate(ind_geo_sec):
                     leg_label = "{:s} (N={:0.0f})".format(
                         geo_reg_alt, regional_cond[geo_reg_alt].sum()
                     )
@@ -490,7 +494,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         temp_ax = axes[0, 0]
 
         if geo_reg == "Globe":
-            for or_i, geo_reg_alt in enumerate([USname, "Alaska", "Hawaii"]):
+            for or_i, geo_reg_alt in enumerate(ind_geo_sec):
                 temp_ax.scatter(
                     ctx_data_cmp[dist_meas][regional_cond[geo_reg_alt]],
                     ctx_data_cmp["mag"][regional_cond[geo_reg_alt]],
@@ -517,9 +521,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         # fig, axes = plt.subplots()
         temp_ax = axes[1, 0]
         if geo_reg == "Globe":
-            for or_i, geo_reg_alt in enumerate(
-                [USname, "Alaska", "Hawaii", "WUS", "EUS"]
-            ):
+            for or_i, geo_reg_alt in enumerate(ind_geo_sec):
                 temp_ax.scatter(
                     pga_gm[regional_cond[geo_reg_alt]],
                     cav_gm[regional_cond[geo_reg_alt]],
@@ -548,14 +550,18 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         #     plt.savefig(fullname)
         num_recs = len(cav_gm)
         fig.suptitle(
-            geo_reg + ": Number of Records = " + str(num_recs), fontsize=title_fontsize
+            geo_reg + "-" + tect_reg + ": Number of Records = " + str(num_recs),
+            fontsize=title_fontsize,
         )
         num_recs_set[geo_reg] = num_recs
-        fname = "Investigative_plots_" + geo_reg + ftype
+
+        fname = "Investigative_plots_" + geo_reg + "_" + tect_reg + ftype
         fullname = fig_dir + fname
-        print(fullname)
+        print("printing: " + fullname)
         if myfig_ops["printfigs"]:
             plt.savefig(fullname, dpi=dpi_res)
+        # if tect_reg == "all_tect":
+        #     break
         eq_numstns_set = []
         unique_eqs_filt = []
         eq_I_set = []
@@ -828,7 +834,8 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
                 temp_ax.set_xlim(plot_logdist_range)
                 temp_ax.set_xscale("log")
                 temp_ax.set_title(
-                    geo_reg + ": " + nice_gmm_model_str, fontsize=title_fontsize
+                    geo_reg + " - " + tect_reg + ": " + nice_gmm_model_str,
+                    fontsize=title_fontsize,
                 )
             elif x_i == 1:
                 temp_ax.set_xlim([0, 2500])
@@ -837,7 +844,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
             temp_ax.set_ylim([-wth_bnd, wth_bnd])
             temp_ax.axhline(0, ls="--", c="grey")
         # temp_ax.text(,,"N = " + str(num_wth))
-        # fname = "Within-Event_Terms_vs_" + dist_meas + "_distance_" + gmm_model_str + "_" + geo_reg + ftype
+        # fname = "Within-Event_Terms_vs_" + dist_meas + "_distance_" + gmm_model_str + "_" + geo_reg + "_" + tect_reg + ftype
         # fullname = fig_dir + fname
         # print(fullname)
         # breakpoint()
@@ -863,7 +870,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         proper_labels = ["Hypocentral Depth, km", "M"]
         temp_xlims = [depth_plot_lims, mag_plot_lims]
 
-        for eqpar_i, data_labels in enumerate(["EarthquakeDepth", magstr]):
+        for eqpar_i, data_labels in enumerate(["EventDepth", magstr]):
             # fig, axes = plt.subplots()
             temp_ax = axes[eqpar_i + 2]
             temp_ax.scatter(df_events[data_labels], df_events["Group"], color="g")
@@ -874,7 +881,7 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
             temp_ax.axhline(0, ls="--", c="grey")
             # temp_ax.set_title(geo_reg + ": " + nice_gmm_model_str + ", N = " + str(num_btw), fontsize=title_fontsize)
             # plt.tight_layout()
-            # fname = "Between-Event_terms_vs_" + data_labels + "_" + gmm_model_str + "_" + geo_reg + ftype
+            # fname = "Between-Event_terms_vs_" + data_labels + "_" + gmm_model_str + "_" + geo_reg + "_" + tect_reg + ftype
             # fullname = fig_dir + fname
             # print(fullname)
             # if myfig_ops["printfigs"]:
@@ -885,13 +892,14 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
             + gmm_model_str
             + "_"
             + geo_reg
+            + "_"
+            + tect_reg
             + ftype
         )
         fullname = fig_dir + fname
-        print(fullname)
+        print("printing: " + fullname)
         if myfig_ops["printfigs"]:
             plt.savefig(fullname, dpi=dpi_res)
-
         # Histograms of residuals
         num_bins = [20, 20]
         res_plt_lims = [[-btw_bnd, btw_bnd], [-wth_bnd, wth_bnd]]
@@ -928,8 +936,9 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
             x = np.linspace(res_plt_lims[res_i][0], res_plt_lims[res_i][1], n)
             # axs.plot(x, norm.pdf(x,data_res_mean,data_res_std), 'r', linewidth = 2.5)
             axs.set_title(
-                "{:s}: {:s}\n {:s}\n{:s}, N = {:0.0f}".format(
+                "{:s} - {:s}: {:s}\n {:s}\n{:s}, N = {:0.0f}".format(
                     geo_reg,
+                    tect_reg,
                     nice_gmm_model_str,
                     res_labels[res_i],
                     stat_label,
@@ -948,10 +957,12 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
                 + gmm_model_str
                 + "_"
                 + geo_reg
+                + "_"
+                + tect_reg
                 + ftype
             )
             fullname = fig_dir + fname
-            print(fullname)
+            print("printing: " + fullname)
             if myfig_ops["printfigs"]:
                 plt.savefig(fullname, dpi=dpi_res)
 
@@ -972,16 +983,23 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         axs.plot(zwx, norm.pdf(zwx), "b", linewidth=2.5)
         axs.set_xlim(-zwx_bnd, zwx_bnd)
         axs.set_title(
-            "{:s}: {:s}\n Standardized Within-Event Terms, N = {:0.0f}".format(
-                geo_reg, nice_gmm_model_str, num_wth
+            "{:s} - {:s}: {:s}\n Standardized Within-Event Terms, N = {:0.0f}".format(
+                geo_reg, tect_reg, nice_gmm_model_str, num_wth
             )
         )
         plt.legend(loc="upper left")
         fname = (
-            "Std_Within-Event_terms_hist" + "_" + gmm_model_str + "_" + geo_reg + ftype
+            "Std_Within-Event_terms_hist"
+            + "_"
+            + gmm_model_str
+            + "_"
+            + geo_reg
+            + "_"
+            + tect_reg
+            + ftype
         )
         fullname = fig_dir + fname
-        print(fullname)
+        print("printing: " + fullname)
         if myfig_ops["printfigs"]:
             plt.savefig(fullname, dpi=dpi_res)
 
@@ -991,18 +1009,25 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         axs.plot(zbx, norm.pdf(zbx), "b", linewidth=2.5)
         axs.set_xlim(-zbx_bnd, zbx_bnd)
         axs.set_title(
-            "{:s}: {:s}\n Standardized Between-Event Terms, N = {:0.0f}".format(
-                geo_reg, nice_gmm_model_str, num_btw
+            "{:s} - {:s}: {:s}\n Standardized Between-Event Terms, N = {:0.0f}".format(
+                geo_reg, tect_reg, nice_gmm_model_str, num_btw
             )
         )
         # axs.plot([], [], ' ', label=leg_label)
         plt.legend(loc="upper left")
         #
         fname = (
-            "Std_Between-Event_terms_hist" + "_" + gmm_model_str + "_" + geo_reg + ftype
+            "Std_Between-Event_terms_hist"
+            + "_"
+            + gmm_model_str
+            + "_"
+            + geo_reg
+            + "_"
+            + tect_reg
+            + ftype
         )
         fullname = fig_dir + fname
-        print(fullname)
+        print("printing: " + fullname)
         if myfig_ops["printfigs"]:
             plt.savefig(fullname, dpi=dpi_res)
 
@@ -1018,11 +1043,11 @@ for tect_reg in EQ_w_tec_info["Tect_region"].unique():
         deq = {
             # "eqid": unique_eqs,
             "eqid": unique_eqs_filt,
-            "eqlat": mydata1d["EarthquakeLatitude"].values[eq_I_set],
-            "eqlon": mydata1d["EarthquakeLongitude"].values[eq_I_set],
+            "eqlat": mydata1d["EventLatitude"].values[eq_I_set],
+            "eqlon": mydata1d["EventLongitude"].values[eq_I_set],
             "numstns": eq_numstns_set,
             "mag": mydata1d[magstr].values[eq_I_set],
-            "depth": mydata1d["EarthquakeDepth"].values[eq_I_set],
+            "depth": mydata1d["EventDepth"].values[eq_I_set],
         }
 
         deq_copy = copy.deepcopy(deq)

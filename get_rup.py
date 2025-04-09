@@ -11,10 +11,10 @@ other files containing this info?
 
 write_files = True 
 use_big_eids = True 
-path_to_rupture_files = '/Users/kksmith/im_scripts/data/rup/'
+path_to_rupture_files = '/Users/kksmith/data/rup/'
 
 # # old one
-# fname = '~/im_scripts/data/GMMout/NumRecs.txt'
+# fname = '~/data/GMMout/NumRecs.txt'
 # mydata = pd.read_csv(fname, sep='\t', header=None)
 # UEIDs = mydata[0]
 
@@ -95,11 +95,11 @@ for uevid in EID_set:
 rup_eqs = pd.DataFrame(np.transpose([eids_w_rup,mags]))
 
 if write_files:
-    rup_eqs.to_csv("./data/avail" + rup_tag + "rup.txt", sep='\t', index=False, header=False)
+    rup_eqs.to_csv("~/data/avail" + rup_tag + "rup.txt", sep='\t', index=False, header=False)
 
 no_rup_eqs = pd.DataFrame(np.transpose([eids_wO_rup,mags_no_rup]))
 if write_files:
-    no_rup_eqs.to_csv("./data/no" + rup_tag + "rup.txt", sep='\t', index=False, header=False)
+    no_rup_eqs.to_csv("~/data/no" + rup_tag + "rup.txt", sep='\t', index=False, header=False)
 
 print('missing {}/{} rupture files'.format(noeid,toteids))
 print('{}/{} bad grabs'.format(len(issue_eids),toteids))

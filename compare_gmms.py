@@ -1,41 +1,53 @@
-'''
+"""
 Distance scaling plots GMM comparisons, consider doing magnitude scaling
 plotting mean, sigma, phi, and tua for multiple GMMs
 Started on Apr 2, 2024
-'''
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
 import get_cgmm_im
 import get_gmm_im
+from convert_GMM_units import *
 
 from gmprocess.utils.constants import UNITS, STATION_METRIC_UNITS
 from openquake.hazardlib.imt import CAV, IA
 
-fig_dir = "/Users/kksmith/figures/"
+# fig_dir = "/Users/kksmith/figures/"
+fig_dir = "/Users/kksmith/figures/compare_gmms/"
 ftype = ".png"
 tick_fontsize = 10
 ax_fontsize = 12
 title_fontsize = 14
 
-def compare_gmms(myimt,main_gmm_set,myeqparams,dist_meas_plot,fig_ops={"makefigs": False, "showfigs": False, "printfigs": False}):
+
+def compare_gmms(
+    myimt,
+    main_gmm_set,
+    myeqparams,
+    dist_meas_plot,
+    fig_ops={"makefigs": False, "showfigs": False, "printfigs": False},
+):
     # getting data!
     mean_set = []
     lnmean_set = []
     phi_set = []
     tau_set = []
     sigma_set = []
-    for m_i, main_model in enumerate(main_gmm_set):
-        print(main_model)
-        if isinstance(main_model,tuple):
+    for m_i, single_gmm_inst in enumerate(main_gmm_set):
+        # breakpoint()
+        print(single_gmm_inst)
+        if isinstance(single_gmm_inst, tuple):
             lnmean, sigma, tau, phi, ctx = get_cgmm_im.get_cgmm_im(
-                myeqparams, main_model[0], main_gmm_set[1], myimt
+                myeqparams, single_gmm_inst[0], single_gmm_inst[1], myimt
             )
         else:
             lnmean, sigma, tau, phi, ctx = get_gmm_im.get_gmm_im(
-                myeqparams, main_model, myimt
+                myeqparams, single_gmm_inst, myimt
             )
-        #breakpoint()
+
+        lnmean = convert_GMM_units(single_gmm_inst, lnmean)
+
         # Convert from ln(mean)
         mean = np.exp(lnmean)
         lnmean_set.append(lnmean)
@@ -55,7 +67,7 @@ def compare_gmms(myimt,main_gmm_set,myeqparams,dist_meas_plot,fig_ops={"makefigs
 
             # plot mean and uncertainties
             fig, ax = plt.subplots()
-            for m_i, main_model in enumerate(main_gmm_set):
+            for m_i, single_gmm_inst in enumerate(main_gmm_set):
                 if simple_stat_type_str[st_i] == "mean":
                     ax.loglog(
                         ctx[dist_meas_plot],
@@ -108,17 +120,22 @@ def compare_gmms(myimt,main_gmm_set,myeqparams,dist_meas_plot,fig_ops={"makefigs
             ax.set_box_aspect(1)
             ax.legend(loc="lower left")
             ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
-            fname = (
-                str(myimt) + "_" + simple_stat_type_str[st_i] + ftype
-            )
+            fname = str(myimt) + "_" + simple_stat_type_str[st_i] + ftype
             fullfname = fig_dir + fname
             if fig_ops["printfigs"]:
                 plt.savefig(fullfname, dpi=300)
 
-            myplots[simple_stat_type_str[st_i]] = ax 
-
+            myplots[simple_stat_type_str[st_i]] = ax
 
     if fig_ops["showfigs"]:
         plt.show()
 
-    return mean_set, lnmean_set, sigma_set, phi_set, tau_set, ctx, myplots,
+    return (
+        mean_set,
+        lnmean_set,
+        sigma_set,
+        phi_set,
+        tau_set,
+        ctx,
+        myplots,
+    )

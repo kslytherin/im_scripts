@@ -23,6 +23,7 @@ fullfname2 = test_path + fname2
 # only works for the dataset: /Users/kksmith/Documents/GMM_data/for_kyle/wus_default_metrics_channels(component=h*)_filtered.csv
 
 fig_dir = "/Users/kksmith/figures/debug/"
+
 ftype = ".png"
 dpi_res = 250
 tick_fontsize = 10
@@ -90,7 +91,7 @@ for datasubset in subsets:
     if make_txt_files:
         # records for EQ and station
         weird_data.to_csv(
-            "./output_conus/weird_records_{}.txt".format(datasubset),
+            "~/output_conus/weird_records_{}.txt".format(datasubset),
             index=False,
             sep="\t",
         )
@@ -130,7 +131,7 @@ for datasubset in subsets:
         )
         # breakpoint()
         UE.to_csv(
-            "./output_conus/EQs_of_weird_records_{}.txt".format(datasubset),
+            "~/output_conus/EQs_of_weird_records_{}.txt".format(datasubset),
             index=False,
             sep="\t",
         )
@@ -156,7 +157,7 @@ for datasubset in subsets:
             ],
         )
         US.to_csv(
-            "./output_conus/STNs_of_weird_records_{}.txt".format(datasubset),
+            "~/output_conus/STNs_of_weird_records_{}.txt".format(datasubset),
             index=False,
             sep="\t",
         )

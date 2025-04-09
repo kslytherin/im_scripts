@@ -57,7 +57,7 @@ con_model_set = ["ParkerEtAl2020SInter"]
 ##############################################
 
 
-path_to_rupture_files = "/Users/kksmith/im_scripts/data/rup/"
+path_to_rupture_files = "/Users/kksmith/data/rup/"
 rup_file = path_to_rupture_files + eid + "_rupture.json"
 
 # def gmm_est(rup_file, main_gmm, con_model_set = None)
