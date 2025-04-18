@@ -10,36 +10,89 @@ pre_dist_meas = "Rrup"
 dist_meas = pre_dist_meas.lower()
 myimt = CAV()
 
+# take a look at earthquakes to choose from
+u_eq_dir = "~/output_conus_test/"
+generic_prefix = "EQ_MacedoEtAl2021-BooreEtAl2014_"
+geo_reg = "Alaska"  # EUS, WUS, Alaska, CONUS, Globe
+tect_reg = "SubductionIntraslab"  #  Active, Stable, Volcanic, SubductionIntraslab, SubductionIntraslab,
+U_EQ_file = u_eq_dir + generic_prefix + geo_reg + "_" + tect_reg + "_v2.csv"
+u_eq = pd.read_csv(U_EQ_file)
+# u_eq = u_eq.sort_values(by="numstns", ascending=False)
+u_eq = u_eq.sort_values(by="mag", ascending=False)
+# choosing the following earthquakes
+# eq_choose = "usp000jwyb"  # M 6.3
+# eq_choose = "ci38457511"  # ridgecrest
+# eq_choose = "ci38443183"  #
+eq_choose = "nn00234425"
+eq_choose = "ak0159nc9dk8"
+eq_choose = "ak021gbh4rso"  # AK, sub-intraslab
+# eq_choose = "ak018fe58vlz"  # AK, sub-intraslab
+# eq_choose = "ak018fcnsk91"  # AK, sub-interface, anchorage
+# eq_choose = "ak021bt4ffvw"  # AK, active, tanana valley
+eq_choose = "nc73827571"  # WUS, interface
+# eq_choose = "uw61965081"  # WUS, slab
+# mydata1 = mydata1.sort_values(by="EarthquakeTime") # eathquake since 1992 to 2024
+# breakpoint()
+# eq_choose = "ak20419010"  # Anchorage Earthquake
+
+u_eq_wtect_file = "~/Documents/GMM_data/for_kyle_conus/CONUS_HW_AK_unique_eqs_tect_region_final.csv"
+u_eq_wtect = pd.read_csv(u_eq_wtect_file)
+u_eq_wtect = u_eq_wtect[u_eq_wtect["EarthquakeId"] == eq_choose]
+eq_tect = u_eq_wtect['Tect_region'].values[0]
+# eq_geo = u_eq_wtect['Geo_region'].values[0] # wish list
+# for active crust 
+if eq_tect == "Active":
+    main_gmm_set = [
+        "CampbellBozorgnia2019",
+        ("MacedoEtAl2021", "BooreEtAl2014"),
+        "SandikkayaAkkar2017Rjb",
+    ]
+    nice_gmm_model_str = [
+        "Campbell and Bozorgnia (2019)",
+        "Macedo et al. (2021) \n[Boore et al. (2014)]",
+        "Sandikkaya and Akkar (2017)",
+    ]
+
 # for slab
-# main_gmm_set = [
-#     "CampbellBozorgnia2019",
-#     "LiuMacedo2022M1SSlab",
-#     "LiuMacedo2022M2SSlab",
-#     ("LiuMacedo2022SSlab", "ParkerEtAl2020SSlab"),
-#     ("MacedoEtAl2021", "BooreEtAl2014"),
-#     "SandikkayaAkkar2017Rjb",
-# ]
+elif eq_tect == "SubductionIntraslab":
+    main_gmm_set = [
+        "CampbellBozorgnia2019",
+        "LiuMacedo2022M1SSlab",
+        "LiuMacedo2022M2SSlab",
+        ("LiuMacedo2022SSlab", "ParkerEtAl2020SSlab"),
+        ("MacedoEtAl2021", "BooreEtAl2014"),
+        "SandikkayaAkkar2017Rjb",
+    ]
+    nice_gmm_model_str = [
+        "Campbell and Bozorgnia (2019)",
+        "Liu and Macedo (2022) M1 Slab",
+        "Liu and Macedo (2022) M2 Slab",
+        "Liu and Macedo (2022) Slab \n[Parker et al. (2020)]",
+        "Macedo et al. (2021) \n[Boore et al. (2014)]",
+        "Sandikkaya and Akkar (2017)",
+    ]
 
 # for interface
-main_gmm_set = [
-    "CampbellBozorgnia2019",
-    "LiuMacedo2022M1SInter",
-    "LiuMacedo2022M2SInter",
-    ("LiuMacedo2022SInter", "ParkerEtAl2020SInter"),
-    ("MacedoEtAl2021", "BooreEtAl2014"),
-    "SandikkayaAkkar2017Rjb",
-]
+elif eq_tect == "SubductionInterface":
+    main_gmm_set = [
+        "CampbellBozorgnia2019",
+        "LiuMacedo2022M1SInter",
+        "LiuMacedo2022M2SInter",
+        ("LiuMacedo2022SInter", "ParkerEtAl2020SInter"),
+        ("MacedoEtAl2021", "BooreEtAl2014"),
+        "SandikkayaAkkar2017Rjb",
+    ]
+    nice_gmm_model_str = [
+        "Campbell and Bozorgnia (2019)",
+        "Liu and Macedo (2022) M1 Inter",
+        "Liu and Macedo (2022) M2 Inter",
+        "Liu and Macedo (2022) Inter \n[Parker et al. (2020)]",
+        "Macedo et al. (2021) \n[Boore et al. (2014)]",
+        "Sandikkaya and Akkar (2017)",
+    ]
 main_col = ["m", "b", "c", "k", "g", "r"]
 main_ls = ["-", "-", "-", "--", "--", "-"]
 
-nice_gmm_model_str = [
-    "Campbell and Bozorgnia (2019)",
-    "Liu and Macedo (2022) M1",
-    "Liu and Macedo (2022) M2",
-    "Liu and Macedo (2022) \n[Parker et al. (2020)]",
-    "Macedo et al. (2021) \n[Boore et al. (2014)]",
-    "Sandikkaya and Akkar (2017)",
-]
 
 test_path = "~/Documents/GMM_data/for_kyle_conus/"
 records_wEQinfo = (
@@ -70,30 +123,6 @@ pga_gm_dta = np.sqrt(pga_vals * pga_vals2)
 cav_gm_dta = np.sqrt(mydata1["CAV"].values * mydata2["CAV"].values)
 mydata1["CAV_GM"] = cav_gm_dta
 
-# take a look at earthquakes to choose from
-u_eq_dir = "~/output_conus_test/"
-generic_prefix = "EQ_MacedoEtAl2021-BooreEtAl2014_"
-geo_reg = "Alaska"  # EUS, WUS, Alaska, CONUS, Globe
-tect_reg = "SubductionIntraslab"  #  Active, Stable, Volcanic, SubductionIntraslab, SubductionIntraslab,
-U_EQ_file = u_eq_dir + generic_prefix + geo_reg + "_" + tect_reg + "_v2.csv"
-u_eq = pd.read_csv(U_EQ_file)
-# u_eq = u_eq.sort_values(by="numstns", ascending=False)
-u_eq = u_eq.sort_values(by="mag", ascending=False)
-# choosing the following earthquakes
-# eq_choose = "usp000jwyb"  # M 6.3
-# eq_choose = "ci38457511"  # ridgecrest
-# eq_choose = "ci38443183"  #
-eq_choose = "nn00234425"
-eq_choose = "ak0159nc9dk8"
-eq_choose = "ak021gbh4rso"  # AK, sub-intraslab
-eq_choose = "ak018fe58vlz"  # AK, sub-intraslab
-eq_choose = "ak018fcnsk91"  # AK, sub-interface, anchorage
-# eq_choose = "ak021bt4ffvw"  # AK, active, tanana valley
-# eq_choose = "nc73827571"  # WUS, interface
-# eq_choose = "uw61965081"  # WUS, slab
-# mydata1 = mydata1.sort_values(by="EarthquakeTime") # eathquake since 1992 to 2024
-# breakpoint()
-# eq_choose = "ak20419010"  # Anchorage Earthquake
 mydata1 = mydata1[mydata1["EarthquakeId"] == eq_choose]
 
 
@@ -157,7 +186,7 @@ ax.set_xlabel("Distance to Earthquake, km")
 ax.set_ylabel("CAV (g-s)")
 ax.set_xlim(dist_min, dist_max)
 ax.set_title(
-    f"{geo_reg} - {mydata1['Tect_region'].values[0]}: {eq_choose}, M{mydata1[magstr].values[0]}, Vs30={int(myeqparams['vs30'])} m/s"
+    f"{geo_reg} - {eq_tect}: {eq_choose}, M{mydata1[magstr].values[0]}, Vs30={int(myeqparams['vs30'])} m/s"
 )
 plt.tight_layout()
 plt.show()

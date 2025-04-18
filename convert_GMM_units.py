@@ -18,8 +18,9 @@ def convert_GMM_units(single_gmm_inst, lnmean):
     print("original name is " + main_model)
     model_split_name = mytools.split_num_letters(main_model)
     model_shorter_name = "".join(model_split_name)
-    # print("joined name is " + model_shorter_name)
-    if model_shorter_name in ["CampbellBozorgnia2019", "LiuMacedo2022"]:
+    print("joined name is " + model_shorter_name)
+    # if model_shorter_name in ["CampbellBozorgnia2019", "LiuMacedo2022"]:
+    if model_shorter_name in ["CampbellBozorgnia2019"]:
         print("converting for " + main_model)
         # convert from m/s to g-s
         conv_fact = np.log(1 / gfact)
